@@ -1,0 +1,11 @@
+{
+  "name": "sdd-idle-check",
+  "owner": { "name": "Oleh Smirnov" },
+  "plugins": [
+    {
+      "name": "sdd-idle-check",
+      "source": "./",
+      "description": "Blocks a Stop that leaves an SDD slot empty"
+    }
+  ]
+}
