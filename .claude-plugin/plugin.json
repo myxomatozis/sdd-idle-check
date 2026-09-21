@@ -1,6 +1,6 @@
 {
   "name": "sdd-idle-check",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Stop-hook guard for subagent-driven development: refuses a turn that ends with a dispatched task still incomplete",
   "author": { "name": "Oleh Smirnov", "email": "oleh.smirnov@icloud.com" },
   "license": "MIT",

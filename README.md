@@ -38,6 +38,16 @@ A `Stop` hook that cannot be satisfied wedges the session, so there are four way
 
 The guard never fails a stop — on any error it exits 0 and stays out of the way.
 
+## Known limit
+
+Ownership is decided by grepping the transcript, so it is a proxy, not proof: a session that
+merely *read* the ledger has the workspace path in its transcript too and will take one spurious
+block. There is no better signal available to the hook — a reader's transcript contains the same
+text the controller's does. The anti-wedge pass-through bounds it to that one block, and `PAUSE`
+ends it.
+
+Likewise, only the newest ledger is judged. An older plan left mid-run is not watched.
+
 ## Check
 
 `python3 test_sdd_idle_check.py`
