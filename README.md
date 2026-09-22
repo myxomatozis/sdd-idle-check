@@ -1,5 +1,7 @@
 # sdd-idle-check
 
+![sdd idle check — a task dispatched with no completion holds the stop](assets/banner.svg)
+
 A Claude Code plugin. One `Stop` hook for subagent-driven development: if the run's ledger names
 a task that was dispatched and never completed, the turn does not end.
 
