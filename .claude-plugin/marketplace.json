@@ -1,11 +1,14 @@
 {
   "name": "sdd-idle-check",
-  "owner": { "name": "Oleh Smirnov" },
+  "owner": {
+    "name": "Oleh Smirnov"
+  },
   "plugins": [
     {
       "name": "sdd-idle-check",
       "source": "./",
       "description": "Blocks a Stop that leaves an SDD slot empty"
     }
-  ]
+  ],
+  "description": "A Stop-hook guard that refuses to end a turn with an SDD task slot empty"
 }
