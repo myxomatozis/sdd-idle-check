@@ -27,6 +27,12 @@ silently rather than guessing.
 /plugin install sdd-idle-check@sdd-idle-check
 ```
 
+Antigravity:
+
+```
+agy plugin install https://github.com/myxomatozis/sdd-idle-check
+```
+
 ## Escape hatches
 
 A `Stop` hook that cannot be satisfied wedges the session, so there are four ways out:

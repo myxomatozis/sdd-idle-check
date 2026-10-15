@@ -89,4 +89,18 @@ assert blocks(repo, json.dumps({"transcript_path": str(mine)})) is not None, \
 assert blocks(repo, json.dumps({"transcript_path": "/nonexistent"})) is not None, \
     "an unreadable transcript must fall back to blocking, not silently disable the guard"
 
+# Antigravity: runs from the plugin dir, finds the repo via workspacePaths, answers in JSON.
+def agy(repo, **extra):
+    payload = json.dumps({"conversationId": "c", "workspacePaths": [repo],
+                          "terminationReason": "NO_TOOL_CALL", **extra})
+    return json.loads(call(tempfile.mkdtemp(), payload))
+
+repo, ws = repo_with("Task 1: dispatched\n")
+out = agy(repo)
+assert out["decision"] == "continue" and "task(s) 1" in out["reason"], out
+assert agy(repo) == {}, "must not block twice on an unchanged ledger"
+repo, _ = repo_with("Task 1: dispatched\n")
+assert agy(repo, terminationReason="USER_CANCELED") == {}, "a cancel must never be held"
+assert agy(tempfile.mkdtemp()) == {}
+
 print("ok")
