@@ -25,31 +25,44 @@ set -uo pipefail
 
 payload=$(cat 2>/dev/null || true)
 
-repo=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+# Antigravity sends camelCase keys, runs the hook from the plugin directory, and wants JSON on
+# stdout even when the answer is "let it stop".
+field() { printf '%s' "$payload" | grep -oE "\"$1\" *: *\[? *\"[^\"]*\"" | head -1 | sed 's/.*"\([^"]*\)"$/\1/'; }
+agy=""
+if printf '%s' "$payload" | grep -q '"conversationId"'; then
+  agy=1
+  reason=$(field terminationReason)
+  [ -z "$reason" ] || [ "$reason" = "NO_TOOL_CALL" ] || { echo '{}'; exit 0; }
+  ws=$(field workspacePaths)
+  [ -n "$ws" ] && cd "$ws" 2>/dev/null || { echo '{}'; exit 0; }
+fi
+pass() { [ -n "$agy" ] && echo '{}'; exit 0; }
+
+repo=$(git rev-parse --show-toplevel 2>/dev/null) || pass
 sdd="$repo/.superpowers/sdd"
-[ -d "$sdd" ] || exit 0
+[ -d "$sdd" ] || pass
 
 # Newest ledger wins: the plan currently being executed.
 ledger=$(ls -t "$sdd"/*/progress.md 2>/dev/null | head -1)
-[ -n "$ledger" ] || exit 0
+[ -n "$ledger" ] || pass
 
 workspace=$(dirname "$ledger")
-[ -f "$workspace/PAUSE" ] && exit 0
+[ -f "$workspace/PAUSE" ] && pass
 
 # Whose run is it? Two sessions in one repo share the newest ledger, and blocking the session
 # that is NOT executing the plan tells the wrong one to dispatch — which risks two controllers
 # on one task. If this session's transcript never mentions the workspace, it is not the owner.
 # Unreadable transcript, or a harness that sends no path: fall through and block as before.
-transcript=$(printf '%s' "$payload" | grep -oE '"transcript_path" *: *"[^"]*"' | sed 's/.*: *"//; s/"$//')
+transcript=$(field transcript_path); [ -n "$transcript" ] || transcript=$(field transcriptPath)
 if [ -n "$transcript" ] && [ -r "$transcript" ]; then
-  grep -qF "$(basename "$workspace")" "$transcript" || exit 0
+  grep -qF "$(basename "$workspace")" "$transcript" || pass
 fi
 
 # A task is outstanding when it was dispatched but never got a `complete` line.
 # A ledger line may be a bullet (`- Task 3: …`) or bare (`Task 3: …`); both count. A task id
 # may carry a letter suffix (`Task 1b`, a task inserted mid-plan), which is part of the id.
 dispatched=$(grep -oE '^(- )?Task [0-9]+[a-z]?:' "$ledger" 2>/dev/null | grep -oE '[0-9]+[a-z]?' | sort -u)
-[ -n "$dispatched" ] || exit 0
+[ -n "$dispatched" ] || pass
 
 outstanding=""
 for n in $dispatched; do
@@ -57,7 +70,7 @@ for n in $dispatched; do
     outstanding="${outstanding:+$outstanding, }$n"
   fi
 done
-[ -n "$outstanding" ] || exit 0
+[ -n "$outstanding" ] || pass
 
 # Anti-wedge: if the ledger has not changed since the last two blocks, let it through.
 state=$(md5 -q "$ledger" 2>/dev/null || md5sum "$ledger" 2>/dev/null | cut -d' ' -f1)
@@ -76,9 +89,10 @@ fi
 printf '%s\n%s\n' "$state" "$count" > "$stamp"
 
 if [ "$count" -ge 2 ]; then
-  exit 0
+  pass
 fi
 
 plan=$(head -1 "$ledger" | sed 's/^# SDD ledger — plan: //')
-printf '{"decision":"block","reason":"SDD run still has outstanding work: task(s) %s in %s have a dispatch line but no `Task N: complete` line.\\n\\nDo not end the turn on a status summary. Dispatch the next thing now — the task review, the fix round, or the next task. If a subagent is still running, reply with one line beginning `Waiting:` naming it, and stop. This will not fire again until the ledger changes.\\n\\nPlan: %s\\nLedger: %s\\nTo silence for this plan: touch %s/PAUSE"}\n' \
-  "$outstanding" "$(basename "$workspace")" "$plan" "$ledger" "$workspace"
+decision=block; [ -n "$agy" ] && decision=continue
+printf '{"decision":"%s","reason":"SDD run still has outstanding work: task(s) %s in %s have a dispatch line but no `Task N: complete` line.\\n\\nDo not end the turn on a status summary. Dispatch the next thing now — the task review, the fix round, or the next task. If a subagent is still running, reply with one line beginning `Waiting:` naming it, and stop. This will not fire again until the ledger changes.\\n\\nPlan: %s\\nLedger: %s\\nTo silence for this plan: touch %s/PAUSE"}\n' \
+  "$decision" "$outstanding" "$(basename "$workspace")" "$plan" "$ledger" "$workspace"
