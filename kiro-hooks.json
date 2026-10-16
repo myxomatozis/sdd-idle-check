@@ -1,0 +1,12 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "sdd-idle-check",
+      "description": "Stop guard for an in-flight subagent-driven-development run",
+      "trigger": "Stop",
+      "action": { "type": "command", "command": "bash ~/.kiro/sdd-idle-check/hooks/sdd-idle-check.sh --kiro" },
+      "timeout": 10
+    }
+  ]
+}
