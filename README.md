@@ -33,6 +33,16 @@ Antigravity:
 agy plugin install https://github.com/myxomatozis/sdd-idle-check
 ```
 
+Kiro CLI (V3 engine):
+
+```
+git clone https://github.com/myxomatozis/sdd-idle-check ~/.kiro/sdd-idle-check
+mkdir -p ~/.kiro/hooks && cp ~/.kiro/sdd-idle-check/kiro-hooks.json ~/.kiro/hooks/sdd-idle-check.json
+```
+
+Kiro sends no transcript path, so ownership is read from the session's own messages under
+`~/.kiro/sessions/`. If that file is not found, the guard blocks as it would without a transcript.
+
 ## Escape hatches
 
 A `Stop` hook that cannot be satisfied wedges the session, so there are four ways out:

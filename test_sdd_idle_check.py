@@ -103,4 +103,23 @@ repo, _ = repo_with("Task 1: dispatched\n")
 assert agy(repo, terminationReason="USER_CANCELED") == {}, "a cancel must never be held"
 assert agy(tempfile.mkdtemp()) == {}
 
+# Kiro: Claude-shaped block, and the transcript is found from session_id under ~/.kiro/sessions.
+def kiro(repo, home, sid):
+    p = subprocess.run(["bash", HOOK, "--kiro"], cwd=repo, capture_output=True, text=True,
+                       input=json.dumps({"session_id": sid, "hook_event_name": "Stop", "cwd": repo}),
+                       env={"HOME": home, "PATH": "/usr/bin:/bin"})
+    assert p.returncode == 0, p.stderr
+    return json.loads(p.stdout)["reason"] if p.stdout.strip() else None
+
+home = tempfile.mkdtemp()
+for sid, text in (("sess_mine", "read .superpowers/sdd/kiro-plan/progress.md"), ("sess_theirs", "x")):
+    d = pathlib.Path(home) / ".kiro" / "sessions" / "abc123" / sid
+    d.mkdir(parents=True)
+    (d / "messages.jsonl").write_text(json.dumps({"text": text}) + "\n")
+repo, _ = repo_with("Task 1: dispatched\n", name="kiro-plan")
+assert kiro(repo, home, "sess_theirs") is None, "another Kiro session owns the run"
+assert "task(s) 1" in kiro(repo, home, "sess_mine"), "the owning Kiro session must be held"
+repo, _ = repo_with("Task 1: dispatched\n", name="kiro-plan")
+assert kiro(repo, home, "sess_unknown") is not None, "no transcript found must fall back to blocking"
+
 print("ok")

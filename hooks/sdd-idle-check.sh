@@ -54,6 +54,11 @@ workspace=$(dirname "$ledger")
 # on one task. If this session's transcript never mentions the workspace, it is not the owner.
 # Unreadable transcript, or a harness that sends no path: fall through and block as before.
 transcript=$(field transcript_path); [ -n "$transcript" ] || transcript=$(field transcriptPath)
+# Kiro sends no transcript path, but keeps each session's messages under ~/.kiro/sessions.
+if [ -z "$transcript" ] && [ "${1:-}" = "--kiro" ]; then
+  sid=$(field session_id)
+  [ -n "$sid" ] && transcript=$(ls "$HOME"/.kiro/sessions/*/"$sid"/messages.jsonl 2>/dev/null | head -1)
+fi
 if [ -n "$transcript" ] && [ -r "$transcript" ]; then
   grep -qF "$(basename "$workspace")" "$transcript" || pass
 fi
